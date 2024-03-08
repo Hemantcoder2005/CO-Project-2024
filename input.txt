@@ -1,3 +1,1 @@
-add R1, R2, r4
-sub R1, R2, R12
-xoR r5, r6, r3
+jalr r1, r2, 2a

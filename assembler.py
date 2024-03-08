@@ -52,27 +52,32 @@ class I_TYPE:
     def ErrorChecker(self):
         '''Checking if there is any error in instruction'''
         instruction=self.instruct
-        self.registers=instruction[1:]
+        self.registers=instruction[1:3] #Creating register list.
 
-        # Handling , in register
-        if(len(self.registers)!=3) or (self.registers[-1][0] == 'r'):
-            Error_log(f"2 register and 1 immidiate value are required for {self.format} Type of instruction.")
-            exit()
-
+        # Handling Registers
+        if(len(self.registers)!=2) :
+            Error_log(f"2 register required for {self.format} Type of instruction.")
         for reg in self.registers:
             if(int(reg[1:])) not in range(0,31):
                 Error_log(f"{reg} not a valid register")
-                exit()
 
+        # Handling imm
+        if (instruction[-1][0]!="$"):
+            Error_log(f"Use $ sign before using imm value for {self.format} Type of instruction")
+        if(instruction[-1][1:].isalnum()):
+            Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
+        
     def toMachineCode(self):
         """Converts the instruction to machine code."""
-        f1 = self.f1[self.instruct[0]]
-        imm = int(self.instruct[-1])
-        for i in range(1,len(self.instruct)):
+        f1 = self.f1[self.instruct[0]][0]
+        imm = int(self.instruct[-1][1:])
+
+        # Converting register address to binary
+        for i in range(1,3):
             self.instruct[i] = opcode_finder(int(self.instruct[i][1:]), 5)
 
-        imm_bin = format(imm, '012b')
-        return self.opcode + " " + self.instruct[1] + " " + f1[0] + self.instruct[2] + " " + imm_bin
+        imm_bin = opcode_finder(imm,12)
+        return self.opcode + " " + self.instruct[1] + " " + f1 +" "+ self.instruct[2] + " " +imm_bin
 
 # Important Functions
 def Error_log(error_log):
@@ -94,7 +99,8 @@ def typeChecker(cmd):
     instruct=a[0].lower()
     if instruct in ['add','sub','slt','sltu','xor','sll','srl','or','and']:
         return R_TYPE(cmd)
-    # elif instruct =="jal"
+    elif instruct in ['lw','addi','sltiu','jalr']:
+        return I_TYPE(cmd)
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg,no_of_bits):

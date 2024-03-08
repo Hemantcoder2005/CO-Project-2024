@@ -1,1 +1,1 @@
-3 register are required for R Type of instruction.
+Use $ sign before using imm value for I Type of instruction
