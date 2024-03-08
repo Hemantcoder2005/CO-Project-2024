@@ -34,6 +34,45 @@ class R_TYPE:
             self.registers[i]=opcode_finder(int(self.registers[i][1:]),5)
         return self.opcode+" "+ self.registers[0]+" "+f1+self.registers[1]+" "+self.registers[2]+" "+f2
 
+class I_TYPE:
+    def __init__(self,instruct) -> None:
+        self.format="I"
+        self.instruct=cmd_Splitter(instruct)
+        
+        if self.instruct[0] == 'addi' or self.instruct[0] == 'sltiu':
+            self.opcode = '0010011'
+        elif self.instruct[0] == 'lw':
+            self.opcode = '0000011'
+        else:
+            self.opcode = '1100111'
+            
+        # f1 decider
+        self.f1={"addi":["000"],"lw":["010"],"sltiu":["011"],"jalr":["000"]}
+
+    def ErrorChecker(self):
+        '''Checking if there is any error in instruction'''
+        instruction=self.instruct
+        self.registers=instruction[1:]
+
+        # Handling , in register
+        if(len(self.registers)!=3) or (self.registers[-1][0] == 'r'):
+            Error_log(f"2 register and 1 immidiate value are required for {self.format} Type of instruction.")
+            exit()
+
+        for reg in self.registers:
+            if(int(reg[1:])) not in range(0,31):
+                Error_log(f"{reg} not a valid register")
+                exit()
+
+    def toMachineCode(self):
+        """Converts the instruction to machine code."""
+        f1 = self.f1[self.instruct[0]]
+        imm = int(self.instruct[-1])
+        for i in range(1,len(self.instruct)):
+            self.instruct[i] = opcode_finder(int(self.instruct[i][1:]), 5)
+
+        imm_bin = format(imm, '012b')
+        return self.opcode + " " + self.instruct[1] + " " + f1[0] + self.instruct[2] + " " + imm_bin
 
 # Important Functions
 def Error_log(error_log):
