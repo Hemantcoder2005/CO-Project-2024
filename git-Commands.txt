@@ -1,0 +1,8 @@
+#To push Data
+git  add .
+git commit -m "<YourMSSG>"
+git push
+
+
+# To get data
+git pull
