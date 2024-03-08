@@ -1,0 +1,1 @@
+3 register are required for R Type of instruction.
