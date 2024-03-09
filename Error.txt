@@ -1,1 +1,0 @@
-Use $ sign before using imm value for I Type of instruction

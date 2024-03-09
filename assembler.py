@@ -64,7 +64,7 @@ class I_TYPE:
         # Handling imm
         if (instruction[-1][0]!="$"):
             Error_log(f"Use $ sign before using imm value for {self.format} Type of instruction")
-        if(instruction[-1][1:].isalnum()):
+        if(not instruction[-1][1:].isdigit()):
             Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
         
     def toMachineCode(self):
