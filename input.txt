@@ -1,1 +1,1 @@
-jalr r1, r2, $2a
+auipc r30, 454545

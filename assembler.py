@@ -35,6 +35,7 @@ class R_TYPE:
         return self.opcode+" "+ self.registers[0]+" "+f1+self.registers[1]+" "+self.registers[2]+" "+f2
 
 class I_TYPE:
+    '''Handle I_Type of instruction'''
     def __init__(self,instruct) -> None:
         self.format="I"
         self.instruct=cmd_Splitter(instruct)
@@ -79,6 +80,53 @@ class I_TYPE:
         imm_bin = opcode_finder(imm,12)
         return self.opcode + " " + self.instruct[1] + " " + f1 +" "+ self.instruct[2] + " " +imm_bin
 
+class U_type:
+    '''Handle U_Type of instruction'''
+    def __init__(self, instruct) -> None:
+        self.format = "U"
+        self.instruct = cmd_Splitter(instruct)
+
+        if self.instruct[0]=="lui":
+            self.opcode="0110111"
+        elif self.instruct[0]=="auipc":
+            self.opcode="0010111"
+
+
+    def ErrorChecker(self):
+        instruction=self.instruct
+        operands=instruction[1:]
+
+        # Handling number of operands
+        if len(operands)!=2: 
+            Error_log(f"2 operands are required for {self.format} Type of instruction.")
+        
+        # Handling Register
+        if int(operands[0][1:]) not in range(0,31):
+            Error_log(f"{operands[0]}, is not a valid register")
+
+        # Handling imm
+        if (operands[-1][0]!="$"):
+            Error_log(f"Use $ sign before using imm value for {self.format} Type of instruction")
+
+        if(not instruction[-1][1:].isdigit()):
+            Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
+
+    def toMachineCode(self):
+        instruction=self.instruct
+        register=instruction[1][1:]
+        immediate=instruction[2][1:]
+
+        print(instruction,register,immediate)
+        
+        # Converting register address to binary
+        reg = opcode_finder(int(register),5)
+
+        # Converting immediate number to binary
+        imm= opcode_finder(int(immediate),20)
+
+        return self.opcode + " " + reg + " " +imm
+
+
 # Important Functions
 def Error_log(error_log):
     '''This will create Error.txt to display error'''
@@ -101,14 +149,14 @@ def typeChecker(cmd):
         return R_TYPE(cmd)
     elif instruct in ['lw','addi','sltiu','jalr']:
         return I_TYPE(cmd)
+    elif instruct in ['lui','auipc']:
+        return U_type(cmd)
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg,no_of_bits):
     '''We have int value to convert into binary with no. of bits'''    
     binary_opcode = format(reg, f'0{no_of_bits}b')
     return binary_opcode
-
-
 
 instruction=[]
 
