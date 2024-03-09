@@ -115,9 +115,7 @@ class U_type:
         instruction=self.instruct
         register=instruction[1][1:]
         immediate=instruction[2][1:]
-
-        print(instruction,register,immediate)
-        
+ 
         # Converting register address to binary
         reg = opcode_finder(int(register),5)
 
