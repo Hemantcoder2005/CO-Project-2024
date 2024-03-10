@@ -78,10 +78,24 @@ class I_TYPE:
     def __init__(self,instruct) -> None:
         self.format="I"
         self.instruct=cmd_Splitter(instruct)
+        def lw_sw_cmd_Splitter(cmd):
+            temp=cmd.split(', ')
+            temp1=temp[1].split('(')
+            temp2=temp1[-1].split(')')
+            if len(temp) > 2:
+                Error_log(f"Only 2 Registers are required in {self.format}  type of instruction")
+                exit()
+            else:
+                a=temp[0].split()
+            a.extend(temp2[0::-1])
+            a.extend(temp1[0::2])
+            a =[item.strip() for item in a]
+            return a
         
         if self.instruct[0] == 'addi' or self.instruct[0] == 'sltiu':
             self.opcode = '0010011'
         elif self.instruct[0] == 'lw':
+            self.instruct = lw_sw_cmd_Splitter(instruct)
             self.opcode = '0000011'
         else:
             self.opcode = '1100111'
@@ -92,12 +106,19 @@ class I_TYPE:
     def ErrorChecker(self):
         '''Checking if there is any error in instruction'''
         instruction=self.instruct
+<<<<<<< HEAD
         self.registers=instruction[1:3] #Creating register list.
         if(instruction[0]=="lw"):
             self.registers[-1]=self.registers[-1][self.registers[-1].index("(")+1:self.registers[1].index(")")]
             self.instruct[-1]=instruction[-1][:instruction[-1].index("(")]
             self.instruct.insert(-1,self.registers[-1])
         
+=======
+        self.registers = []
+        for i in range(len(instruction)):
+            if instruction[i][0] == 'r':
+                self.registers.append(instruction[i])
+>>>>>>> 741c847d76dfaf7aaadfa5b57ab6c3c737008110
         # Handling Registers
         if(len(self.registers)!=2) :
             Error_log(f"2 register required for {self.format} Type of instruction.")
@@ -121,7 +142,11 @@ class I_TYPE:
         for reg in self.registers:
             self.registers[self.registers.index(reg)]=registers[reg]
         imm_bin = opcode_finder(imm,12)
+<<<<<<< HEAD
         return imm_bin+self.registers[1]+f1+self.registers[0]+ self.opcode
+=======
+        return imm_bin+" "+self.instruct[2]+" "+f1+""+self.instruct[1]+" "+self.opcode
+>>>>>>> 741c847d76dfaf7aaadfa5b57ab6c3c737008110
 
 class U_type:
     '''Handle U_Type of instruction'''
