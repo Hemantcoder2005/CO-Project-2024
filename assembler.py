@@ -1,6 +1,10 @@
+# importing module
+import os
+
 # Reading Instructions
 input_file=open("input.txt")
 instruct_input=input_file.readlines()
+
 
 
 # register
@@ -72,7 +76,6 @@ class R_TYPE:
         for i in range(len(self.registers)):
             self.registers[i]=registers[self.registers[i]]
         return f2+self.registers[2]+self.registers[1]+f1+ self.registers[0]+self.opcode
-
 class I_TYPE:
     '''Handle I_Type of instruction'''
     def __init__(self,instruct) -> None:
@@ -116,6 +119,7 @@ class I_TYPE:
         for i in range(len(instruction)):
             if instruction[i][0] == 'r':
                 self.registers.append(instruction[i])
+            print(self.registers)
         # Handling Registers
         if(len(self.registers)!=2) :
             Error_log(f"2 register required for {self.format} Type of instruction.")
@@ -141,7 +145,6 @@ class I_TYPE:
         imm_bin = opcode_finder(imm,12)
         return imm_bin+self.registers[1]+f1+self.registers[0]+ self.opcode
         return imm_bin+" "+self.instruct[2]+" "+f1+""+self.instruct[1]+" "+self.opcode
-
 class U_type:
     '''Handle U_Type of instruction'''
     def __init__(self, instruct) -> None:
@@ -244,7 +247,6 @@ class B_TYPE:
 
         # Return machine code
         return imm_upper + self.registers[1] + self.registers[0] + funct3 + imm_lower + self.opcode
-
 class S_TYPE:
     '''Handle S_Type of instruction'''
 
@@ -288,15 +290,60 @@ class S_TYPE:
             self.registers[self.registers.index(reg)]=registers[reg]
         imm_bin = opcode_finder(imm,12)
         return imm_bin[:5]+self.registers[0]+self.registers[1]+self.funct3_opcode+imm_bin[5:]+ self.opcode
+class J_TYPE:
+    '''Handle J_Type of instruction'''
 
+    def __init__(self, instruct) -> None:
+        self.format = "J"
+        self.instruct = cmd_Splitter(instruct)
+        self.opcode = "1101111"
+
+    def ErrorChecker(self):
+        instruction = self.instruct
+        
+        # Handling number of operands
+        if len(instruction[1:]) != 2: 
+            Error_log(f"2 operands are required for {self.format} Type of instruction.")
+        
+        # Handling Register
+        self.registers = instruction[1]
+        if self.registers not in registers:
+            Error_log(f"{self.registers} is not a valid register for {self.format} Type of instruction.")
+        
+        # Handling immediate value
+        imm = instruction[-1]
+        if imm[0] == "-":
+            imm = imm[1:]
+        if not imm.isdigit():
+            Error_log(f"Use decimal value for imm in {self.format} Type of instruction.")
+
+    def toMachineCode(self):
+        instruction = self.instruct 
+        
+        # Converting immediate number to binary
+        imm = opcode_finder(int(instruction[-1]), 20)
+        if instruction[-1][0] == "-":
+            imm = opcode_finder(2 ** 20 + int(instruction[-1]), 20)  # Two's complement for negative immediate values
+        
+        # Converting register address to binary
+        reg = registers[self.registers]
+        return imm[0]+imm[10:]+imm[8]+imm[1:9]+reg + self.opcode
 
         
 # Important Functions
+def removeFile(error=True):
+    if error and os.path.exists("Error.txt"):
+        os.remove("Error.txt")
+    if not error and os.path.exists("output.txt"):
+        os.remove("Error.txt")
+        if os.path.exists("output.txt"):
+            os.remove("output.txt")
 def Error_log(error_log):
     '''This will create Error.txt to display error'''
     f=open("Error.txt",'w')
     f.write(error_log)
     f.close()
+    removeFile(False)
     exit()
 def cmd_Splitter(cmd):
     '''This will convert command in a list'''
@@ -319,6 +366,8 @@ def typeChecker(cmd):
         return B_TYPE(cmd)
     elif instruct in ['sw']:
         return S_TYPE(cmd)
+    elif instruct in ['jal']:
+        return J_TYPE(cmd)
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg, no_of_bits):
@@ -328,8 +377,11 @@ def opcode_finder(reg, no_of_bits):
         reg = (1 << no_of_bits) + reg  # Add 2^no_of_bits to the negative value
     binary_opcode = format(reg, f'0{no_of_bits}b')
     return binary_opcode
-instruction=[]
 
+if len(instruct_input)==0:
+    Error_log("No instruction given in input.txt")
+
+instruction=[]
 # Error Handling
 for instr in instruct_input:
     Format=typeChecker(instr)
@@ -344,3 +396,4 @@ for instr in instruction:
 # Saving Machine code to output.txt file
 open("output.txt","w").writelines(machine_code)
 print(machine_code)
+removeFile()

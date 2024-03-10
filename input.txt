@@ -1,1 +1,2 @@
-sw t5,200(gp)
+jal gp,-512
+jal t1,32
