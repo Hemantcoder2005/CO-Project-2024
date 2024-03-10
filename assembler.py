@@ -35,7 +35,6 @@ class R_TYPE:
         return self.opcode+" "+ self.registers[0]+" "+f1+self.registers[1]+" "+self.registers[2]+" "+f2
 
 class I_TYPE:
-    '''Handle I_Type of instruction'''
     def __init__(self,instruct) -> None:
         self.format="I"
         self.instruct=cmd_Splitter(instruct)
@@ -43,6 +42,7 @@ class I_TYPE:
         if self.instruct[0] == 'addi' or self.instruct[0] == 'sltiu':
             self.opcode = '0010011'
         elif self.instruct[0] == 'lw':
+            self.instruct = lw_sw_cmd_Splitter(instruct)
             self.opcode = '0000011'
         else:
             self.opcode = '1100111'
@@ -65,14 +65,13 @@ class I_TYPE:
         # Handling imm
         if (instruction[-1][0]!="$"):
             Error_log(f"Use $ sign before using imm value for {self.format} Type of instruction")
-        if(not instruction[-1][1:].isdigit()):
+        if(instruction[-1][1:].isalnum()):
             Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
         
     def toMachineCode(self):
         """Converts the instruction to machine code."""
         f1 = self.f1[self.instruct[0]][0]
-        imm = int(self.instruct[-1][1:])
-
+        imm = int(self.instruct[-2])
         # Converting register address to binary
         for i in range(1,3):
             self.instruct[i] = opcode_finder(int(self.instruct[i][1:]), 5)
@@ -155,6 +154,17 @@ def opcode_finder(reg,no_of_bits):
     '''We have int value to convert into binary with no. of bits'''    
     binary_opcode = format(reg, f'0{no_of_bits}b')
     return binary_opcode
+def lw_sw_cmd_Splitter(cmd):
+    temp=cmd.split(', ')
+    temp1=temp[1].split('(')
+    temp2=temp1[-1].split(')')
+    a=temp[0].split()
+    a.extend(temp[1::])
+    a.extend(temp1[0::2])
+    a.extend(temp2[0::-1])
+    a.pop(2)
+    a=[item.strip() for item in a]
+    return a
 
 instruction=[]
 
