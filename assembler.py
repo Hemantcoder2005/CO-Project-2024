@@ -289,7 +289,48 @@ class S_TYPE:
         imm_bin = opcode_finder(imm,12)
         return imm_bin[:5]+self.registers[0]+self.registers[1]+self.funct3_opcode+imm_bin[5:]+ self.opcode
 
+class J_TYPE:
+    '''Handle J_Type of instruction'''
 
+    def __init__(self, instruct) -> None:
+        self.format = "J"
+        self.instruct = cmd_Splitter(instruct)
+
+        self.opcode="1101111"
+
+
+    def ErrorChecker(self):
+        instruction=self.instruct
+        self.registers=instruction[1]
+
+        # Handling number of operands
+        if len(instruction[1:])!=2: 
+            Error_log(f"2 operands are required for {self.format} Type of instruction.")
+        
+        # Handling Register
+            try:
+                registers[self.registers]
+            except:
+                Error_log(f"{self.registers} is not valid register for {self.format} Type of instruction.")
+        
+        # Handling imm
+        imm=instruction[-1]
+        if imm[0]=="-":
+            imm=imm[1:]
+        if(not imm.isdigit()):
+            Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
+
+    def toMachineCode(self):
+        instruction=self.instruct 
+        # Converting register address to binary
+        reg = registers[self.registers]
+        # Converting immediate number to binary
+        imm= opcode_finder(int(instruction[-1]),20)
+        instruction1 = imm[0] + imm[10:0:-1] + imm[11] + imm[19:10:-1] + imm[12]
+        # instruction1 = instruction1.zfill(32)
+
+
+        return instruction1+reg+self.opcode
         
 # Important Functions
 def Error_log(error_log):
@@ -319,6 +360,8 @@ def typeChecker(cmd):
         return B_TYPE(cmd)
     elif instruct in ['sw']:
         return S_TYPE(cmd)
+    elif instruct in ['jal']:
+        return J_TYPE(cmd)
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg, no_of_bits):
