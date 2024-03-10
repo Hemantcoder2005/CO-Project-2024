@@ -71,7 +71,6 @@ class I_TYPE:
         for i in range(len(instruction)):
             if instruction[i][0] == 'r':
                 self.registers.append(instruction[i])
-        print(self.registers)
         # Handling Registers
         if(len(self.registers)!=2) :
             Error_log(f"2 register required for {self.format} Type of instruction.")
