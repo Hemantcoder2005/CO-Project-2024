@@ -319,15 +319,19 @@ class J_TYPE:
 
     def toMachineCode(self):
         instruction = self.instruct 
+
+        #implementing the imm value by subtracting from current label
+
         
         # Converting immediate number to binary
         imm = opcode_finder(int(instruction[-1]), 20)
-        if instruction[-1][0] == "-":
-            imm = opcode_finder(2 ** 20 + int(instruction[-1]), 20)  # Two's complement for negative immediate values
-        
+        # if instruction[-1][0] == "-":
+        #     imm = opcode_finder(2 ** 20 + int(instruction[-1]), 20)  # Two's complement for negative immediate values
+        print(imm)
         # Converting register address to binary
         reg = registers[self.registers]
-        return imm[0]+imm[10:]+imm[8]+imm[1:9]+reg + self.opcode
+        
+        return imm[0]+" "+imm[9:19]+" "+imm[9]+imm[1:9]+" "+reg + self.opcode
 
         
 # Important Functions

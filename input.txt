@@ -1,2 +1,1 @@
-jal gp,-512
-jal t1,32
+jal ra,-1024
