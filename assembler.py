@@ -5,6 +5,7 @@ import os
 input_file=open("input.txt")
 instruct_input=input_file.readlines()
 
+virtual_halt=False
 
 
 # register
@@ -192,8 +193,12 @@ class B_TYPE:
     def __init__(self, instruct) -> None:
         self.format = "B"
         self.opcode="1100011"
+        self.virtual_halt=False
+        if instruct=="beq zero,zero,0":
+            self.virtual_halt=True
         self.instruct = cmd_Splitter(instruct)
 
+       
         # funct3 decider
         self.funct3_opcode = {
             "beq": "000",
@@ -371,7 +376,7 @@ def typeChecker(cmd):
     elif instruct in ['sw']:
         return S_TYPE(cmd)
     elif instruct in ['jal']:
-        return J_TYPE(cmd)
+        return J_TYPE(cmd)   
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg, no_of_bits):
@@ -388,9 +393,15 @@ if len(instruct_input)==0:
 instruction=[]
 # Error Handling
 for instr in instruct_input:
+    if instr=="beq zero,zero,0":
+        virtual_halt=True
     Format=typeChecker(instr)
     Format.ErrorChecker()
     instruction.append(Format)
+if instruct_input[-1]!="beq zero,zero,0" and virtual_halt:
+    Error_log("Virtual Halt is not present at end")
+if not virtual_halt:
+    Error_log("Virtual Halt is not present")
 
 machine_code=[]
 # Convert in machine code
