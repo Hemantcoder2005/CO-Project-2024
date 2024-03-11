@@ -5,7 +5,7 @@ import os
 input_file=open("input.txt")
 instruct_input=input_file.readlines()
 
-virtual_halt=False
+
 
 
 # register
@@ -82,24 +82,10 @@ class I_TYPE:
     def __init__(self,instruct) -> None:
         self.format="I"
         self.instruct=cmd_Splitter(instruct)
-        def lw_sw_cmd_Splitter(cmd):
-            temp=cmd.split(', ')
-            temp1=temp[1].split('(')
-            temp2=temp1[-1].split(')')
-            if len(temp) > 2:
-                Error_log(f"Only 2 Registers are required in {self.format}  type of instruction")
-                exit()
-            else:
-                a=temp[0].split()
-            a.extend(temp2[0::-1])
-            a.extend(temp1[0::2])
-            a =[item.strip() for item in a]
-            return a
-        
+
         if self.instruct[0] == 'addi' or self.instruct[0] == 'sltiu':
             self.opcode = '0010011'
         elif self.instruct[0] == 'lw':
-            self.instruct = lw_sw_cmd_Splitter(instruct)
             self.opcode = '0000011'
         else:
             self.opcode = '1100111'
@@ -111,16 +97,11 @@ class I_TYPE:
         '''Checking if there is any error in instruction'''
         instruction=self.instruct
         self.registers=instruction[1:3] #Creating register list.
-        if(instruction[0]=="lw"):
+        if(instruction[0]=="lw" or instruction[0]=="sw" ):
             self.registers[-1]=self.registers[-1][self.registers[-1].index("(")+1:self.registers[1].index(")")]
             self.instruct[-1]=instruction[-1][:instruction[-1].index("(")]
             self.instruct.insert(-1,self.registers[-1])
         
-        self.registers = []
-        for i in range(len(instruction)):
-            if instruction[i][0] == 'r':
-                self.registers.append(instruction[i])
-            print(self.registers)
         # Handling Registers
         if(len(self.registers)!=2) :
             Error_log(f"2 register required for {self.format} Type of instruction.")
@@ -131,8 +112,10 @@ class I_TYPE:
                 Error_log(f"{reg} is not valid register for {self.format} Type of instruction.")
 
         # Handling imm
-
-        if(not instruction[-1].isdigit()):
+        imm=instruction[-1]
+        if imm[0]=="-":
+            imm=imm[1:]
+        if(not imm.isdigit()):
             Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
         
     def toMachineCode(self):
@@ -140,12 +123,11 @@ class I_TYPE:
         f1 = self.f1[self.instruct[0]][0]
         imm = int(self.instruct[-1])
         # Converting register address to binary
-        
         for reg in self.registers:
             self.registers[self.registers.index(reg)]=registers[reg]
         imm_bin = opcode_finder(imm,12)
+
         return imm_bin+self.registers[1]+f1+self.registers[0]+ self.opcode
-        return imm_bin+" "+self.instruct[2]+" "+f1+""+self.instruct[1]+" "+self.opcode
 class U_type:
     '''Handle U_Type of instruction'''
     def __init__(self, instruct) -> None:
@@ -270,7 +252,7 @@ class S_TYPE:
         self.registers[-1]=self.registers[-1][self.registers[-1].index("(")+1:self.registers[1].index(")")]
         self.instruct[-1]=instruction[-1][:instruction[-1].index("(")]
         self.instruct.insert(-1,self.registers[-1])
-
+        print(self.registers)
         # Handling Registers
         if(len(self.registers)!=2) :
             Error_log(f"2 register required for {self.format} Type of instruction.")
@@ -282,7 +264,10 @@ class S_TYPE:
 
         # Handling imm
 
-        if(not instruction[-1].isdigit()):
+        imm=instruction[-1]
+        if imm[0]=="-":
+            imm=imm[1:]
+        if(not imm.isdigit()):
             Error_log(f"Use decimal value for imm in {self.format} Type of instruction")
 
         # Converting imm to binary
@@ -324,19 +309,11 @@ class J_TYPE:
 
     def toMachineCode(self):
         instruction = self.instruct 
-
-        #implementing the imm value by subtracting from current label
-
-        
         # Converting immediate number to binary
         imm = opcode_finder(int(instruction[-1]), 20)
-        # if instruction[-1][0] == "-":
-        #     imm = opcode_finder(2 ** 20 + int(instruction[-1]), 20)  # Two's complement for negative immediate values
-        print(imm)
-        # Converting register address to binary
         reg = registers[self.registers]
         
-        return imm[0]+" "+imm[9:19]+" "+imm[9]+imm[1:9]+" "+reg + self.opcode
+        return imm[0]+imm[9:19]+imm[9]+imm[1:9]+reg + self.opcode
 
         
 # Important Functions
@@ -393,6 +370,8 @@ if len(instruct_input)==0:
 instruction=[]
 # Error Handling
 for instr in instruct_input:
+    if instr=="\n":
+        continue
     if instr=="beq zero,zero,0":
         virtual_halt=True
     Format=typeChecker(instr)
@@ -406,9 +385,9 @@ if not virtual_halt:
 machine_code=[]
 # Convert in machine code
 for instr in instruction:
+
     machine_code.append(instr.toMachineCode()+"\n")
     
 # Saving Machine code to output.txt file
 open("output.txt","w").writelines(machine_code)
-print(machine_code)
 removeFile()
