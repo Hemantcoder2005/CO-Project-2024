@@ -172,14 +172,16 @@ class U_type:
 class B_TYPE:
     '''Handle B_Type of instruction'''
 
-    def __init__(self, instruct) -> None:
+    def __init__(self, instruct,pc) -> None:
+        print(pc)
+        self.pc=pc
         self.format = "B"
         self.opcode="1100011"
         self.virtual_halt=False
         if instruct=="beq zero,zero,0":
             self.virtual_halt=True
         self.instruct = cmd_Splitter(instruct)
-
+        # if (self.instruct[-1]!)
        
         # funct3 decider
         self.funct3_opcode = {
@@ -208,6 +210,9 @@ class B_TYPE:
 
         # Handling imm
         imm=instruction[-1]
+        if imm.isalpha():
+            return
+
         if imm[0]=="-":
             imm=imm[1:]
         if(not imm.isdigit()):
@@ -218,22 +223,23 @@ class B_TYPE:
         '''Converts the instruction to machine code.'''
         funct3 = self.funct3_opcode[self.instruct[0].lower()]
         # Extract imm value
-        imm_val = int(self.instruct[-1])
-        
-        # Calculate imm[12|10 : 5] and imm[4 : 1|11]
-        imm_upper = imm_val >> 5 & 0b11111  # imm[12|10:5]
-        imm_lower = imm_val & 0b11111       # imm[4:1|11]
+        imm_val=self.instruct[-1]
+        try:
+            imm_val = int(imm_val)
+        except:
+            try:
+                
+                imm_val=self.pc-labels[imm_val]
 
-        # Converting imm to binary
-        imm_lower = format(imm_lower, '05b') 
-        imm_upper= '0' + format(imm_upper, '06b')
+            except:
+                Error_log("Invalid label!")
+        imm_val=opcode_finder(imm_val,16)
         
-        # rs1, rs2, and opcode
         for reg in self.registers:
             self.registers[self.registers.index(reg)]=registers[reg]
 
         # Return machine code
-        return imm_upper + self.registers[1] + self.registers[0] + funct3 + imm_lower + self.opcode
+        return imm_val[4:11] + self.registers[1] + self.registers[0] + funct3 + imm_val[11:] + self.opcode
 class S_TYPE:
     '''Handle S_Type of instruction'''
 
@@ -283,7 +289,8 @@ class S_TYPE:
 class J_TYPE:
     '''Handle J_Type of instruction'''
 
-    def __init__(self, instruct) -> None:
+    def __init__(self, instruct,pc) -> None:
+        self.pc=pc
         self.format = "J"
         self.instruct = cmd_Splitter(instruct)
         self.opcode = "1101111"
@@ -302,13 +309,25 @@ class J_TYPE:
         
         # Handling immediate value
         imm = instruction[-1]
+        if imm.isalpha():
+            return
         if imm[0] == "-":
             imm = imm[1:]
         if not imm.isdigit():
             Error_log(f"Use decimal value for imm in {self.format} Type of instruction.")
 
     def toMachineCode(self):
-        instruction = self.instruct 
+        instruction = self.instruct
+        imm_val=instruction[-1]
+        try:
+            imm_val = int(imm_val)
+        except:
+            try:
+                
+                imm_val=self.pc-labels[imm_val]
+
+            except:
+                Error_log("Invalid label!") 
         # Converting immediate number to binary
         imm = opcode_finder(int(instruction[-1]), 20)
         reg = registers[self.registers]
@@ -338,7 +357,7 @@ def cmd_Splitter(cmd):
     a.extend(temp[1::])
     a=[item.strip() for item in a]
     return a
-def typeChecker(cmd):
+def typeChecker(cmd,pc):
     '''Check the type of Instruction'''
     a=cmd.split()
     instruct=a[0].lower()
@@ -349,11 +368,11 @@ def typeChecker(cmd):
     elif instruct in ['lui','auipc']:
         return U_type(cmd)
     elif instruct in ['beq', 'bne', 'blt', 'bge', 'bltu' , 'bgeu']:
-        return B_TYPE(cmd)
+        return B_TYPE(cmd,pc)
     elif instruct in ['sw']:
         return S_TYPE(cmd)
     elif instruct in ['jal']:
-        return J_TYPE(cmd)   
+        return J_TYPE(cmd,pc)   
     else:
         Error_log(f"{instruct} not a valid instruction")
 def opcode_finder(reg, no_of_bits):
@@ -368,19 +387,35 @@ if len(instruct_input)==0:
     Error_log("No instruction given in input.txt")
 
 instruction=[]
+
+
+labels={}
+program_counter=0
 # Error Handling
 for instr in instruct_input:
     if instr=="\n":
         continue
+    try:
+        intr_labels=instr.split(":")
+        instr=intr_labels[1].strip()
+        label=intr_labels[0].strip()
+        labels[label]=program_counter
+
+    except:
+        instr=instr.strip()
     if instr=="beq zero,zero,0":
         virtual_halt=True
-    Format=typeChecker(instr)
+    Format=typeChecker(instr,program_counter)
     Format.ErrorChecker()
     instruction.append(Format)
-if instruct_input[-1]!="beq zero,zero,0" and virtual_halt:
-    Error_log("Virtual Halt is not present at end")
-if not virtual_halt:
-    Error_log("Virtual Halt is not present")
+    program_counter+=4
+
+
+
+# if instruct_input[-1]!="beq zero,zero,0" and virtual_halt:
+#     Error_log("Virtual Halt is not present at end")
+# if not virtual_halt:
+#     Error_log("Virtual Halt is not present")
 
 machine_code=[]
 # Convert in machine code
@@ -390,4 +425,5 @@ for instr in instruction:
     
 # Saving Machine code to output.txt file
 open("output.txt","w").writelines(machine_code)
+print(machine_code)
 removeFile()
