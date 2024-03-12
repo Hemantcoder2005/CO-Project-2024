@@ -1,48 +1,54 @@
 # importing module
 import os
+import sys
 
+input_using_terminal=sys.argv[1]
+output_using_terminal=sys.argv[2]
 # Reading Instructions
-input_file=open("input.txt")
-instruct_input=input_file.readlines()
+f=open(input_using_terminal,"r")
+instruct_input=f.readlines()
 
 
 
 
 # register
-registers = {
-    "zero": "00000",
-    "ra": "00001",
-    "sp": "00010",
-    "gp": "00011",
-    "tp": "00100",
-    "t0": "00101",
-    "t1": "00110",
-    "t2": "00111",
-    "s0": "01000",
-    "s1": "01001",
-    "a0": "01010",
-    "a1": "01011",
-    "a2": "01100",
-    "a3": "01101",
-    "a4": "01110",
-    "a5": "01111",
-    "a6": "10000",
-    "a7": "10001",
-    "s2": "10010",
-    "s3": "10011",
-    "s4": "10100",
-    "s5": "10101",
-    "s6": "10110",
-    "s7": "10111",
-    "s8": "11000",
-    "s9": "11001",
-    "s10": "11010",
-    "s11": "11011",
-    "t3": "11100",
-    "t4": "11101",
-    "t5": "11110",
-    "t6":"11111"
+registers={
+    "zero":"00000",
+    "ra":"00001",
+    "sp":"00010",
+    "gp":"00011",
+    "tp":"00100",
+    "t0":"00101",
+    "t1":"00110",
+    "t2":"00111",
+    "s0":"01000",
+    "fp":"01000",
+    "s1":"01001",
+    "a0":"01010",
+    "a1":"01011",
+    "a2":"01100",
+    "a3":"01101",
+    "a4":"01110",
+    "a5":"01111",
+    "a6":"10000",
+    "a7":"10001",
+    "s2":"10010",
+    "s3":"10011",
+    "s4":"10100",
+    "s5":"10101",
+    "s6":"10110",
+    "s7":"10111",
+    "s8":"11000",
+    "s9":"11001",
+    "s10":"11010",
+    "s11":"11011",
+    "t3":"11100",
+    "t4":"11101",
+    "t5":"11110",
+    "t6":"11111",
+
 }
+
 # Instruction Format
 
 class R_TYPE:
@@ -239,7 +245,7 @@ class B_TYPE:
             self.registers[self.registers.index(reg)]=registers[reg]
 
         # Return machine code
-        return imm_val[4:11] + self.registers[1] + self.registers[0] + funct3 + imm_val[11:] + self.opcode
+        return imm_val[4:11] + self.registers[1] + self.registers[0] + funct3 + imm_val[11:15]+imm_val[0] + self.opcode
 class S_TYPE:
     '''Handle S_Type of instruction'''
 
@@ -285,7 +291,7 @@ class S_TYPE:
         for reg in self.registers:
             self.registers[self.registers.index(reg)]=registers[reg]
         imm_bin = opcode_finder(imm,12)
-        return imm_bin[:5]+self.registers[0]+self.registers[1]+self.funct3_opcode+imm_bin[5:]+ self.opcode
+        return imm_bin[:7]+self.registers[0]+self.registers[1]+self.funct3_opcode+imm_bin[7:]+ self.opcode
 class J_TYPE:
     '''Handle J_Type of instruction'''
 
@@ -346,6 +352,7 @@ def removeFile(error=True):
 def Error_log(error_log):
     '''This will create Error.txt to display error'''
     f=open("Error.txt",'w')
+    print(error_log)
     f.write(error_log)
     f.close()
     removeFile(False)
@@ -391,6 +398,8 @@ instruction=[]
 
 labels={}
 program_counter=0
+
+
 # Error Handling
 for instr in instruct_input:
     if instr=="\n":
@@ -424,6 +433,7 @@ for instr in instruction:
     machine_code.append(instr.toMachineCode()+"\n")
     
 # Saving Machine code to output.txt file
-open("output.txt","w").writelines(machine_code)
-print(machine_code)
+# open("output.txt","w").writelines(machine_code)
+g=open(output_using_terminal,"w")
+g.writelines(machine_code)
 removeFile()
