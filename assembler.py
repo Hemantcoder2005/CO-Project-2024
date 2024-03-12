@@ -9,7 +9,10 @@ f=open(input_using_terminal,"r")
 instruct_input=f.readlines()
 
 
-
+# B,S  --- Girik
+# U,R_TYPE ---  Aditya
+# I,J --- Anirudh
+# Error HAndling - (All classes , Virtual Halt),labels --- Hemant
 
 # register
 registers={
@@ -421,10 +424,10 @@ for instr in instruct_input:
 
 
 
-# if instruct_input[-1]!="beq zero,zero,0" and virtual_halt:
-#     Error_log("Virtual Halt is not present at end")
-# if not virtual_halt:
-#     Error_log("Virtual Halt is not present")
+if instruct_input[-1]!="beq zero,zero,0" and virtual_halt:
+    Error_log("Virtual Halt is not present at end")
+if not virtual_halt:
+    Error_log("Virtual Halt is not present")
 
 machine_code=[]
 # Convert in machine code
