@@ -36,7 +36,52 @@ while (pc<len(instructions)):
         funct3=instructions[pc][17:20]
         funct7=instructions[pc][:7]
 
-        
+        # Loading register Values
+        rs1=int(registers[rs1],2)
+        rs2=int(registers[rs2],2)
+
+        # Operations
+        if funct7=="0"*7 and funct3=="0"*3 :
+            '''ADD'''
+            ans=rs1+rs2    
+        elif funct7=="01"+"0"*5 and funct3=="0"*3 :
+            '''SUB'''
+            ans=rs1-rs2
+            
+        elif funct7=="0"*7 and funct3=="001" :
+            '''SLL'''
+            ans=rs1 << rs2
+        elif funct7=="0"*7 and funct3=="010":
+            '''set less than'''
+            if rs1 < rs2:
+                ans="1"
+            else:
+                ans="0"
+        elif funct7=="0"*7 and funct3=="011":
+            '''set less than (unsigned)'''
+            if rs1<rs2 and rs2>=0 and rs1>=0:
+                ans="1"
+            else:
+                ans="0"
+        elif funct7=="0"*7 and funct3=="100":
+            '''XOR'''
+            ans=rs1 ^ rs2
+        elif (funct7 == "0"*7 and funct3 == "101"):
+            '''SRL'''
+            shift_amount = rs2 & 0b11111
+            ans = rs1 >> shift_amount
+        elif (funct7 == "0"*7 and funct3 == "110"):
+            '''OR (Bitwise Logical OR)'''
+            ans = rs1 | rs2
+        elif (funct7 == "0"*7 and funct3 == "111"):
+            '''AND (Bitwise Logical AND)'''
+            ans = rs1 & rs2
+        else:
+            print(f"ERROR at {pc}")
+            pc+=1
+            continue
+        registers[rd]=bin(ans)[2:].zfill(32)
+    print(registers)
     pc+=1
 
 
