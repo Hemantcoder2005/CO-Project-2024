@@ -1,13 +1,15 @@
 import sys
 
  
-Program_Memory=[input()]
-# instructs_length=len(instructions)
+instructions=["1","1"]
+instructs_length=len(instructions)
 
-# Program_Memory=[]
+Program_Memory={}
 # Intialize DataMemory
-# for j in range(0, instructs_length):
-#     Program_Memory[hex(memoryAddress)[2:].zfill(8)]=instructions[j]
+memoryAddress=0 
+for j in range(0, instructs_length):
+    Program_Memory[hex(memoryAddress)[2:].zfill(8)]=instructions[j]
+    memoryAddress+=4
 
 Data_Memory={}
 # Intialize DataMemory 
@@ -36,10 +38,9 @@ def signExtend(num):
         restBits= num [1:]
         ans=signBit*length + restBits
         return ans
-pc=0
-while pc<len(Program_Memory):
+
+for pc, instruction in Program_Memory.items():
     # Opcode extractor
-    instruction=Program_Memory[pc]
     opcode = instruction[25:]
 
     if opcode in R:
@@ -114,7 +115,7 @@ while pc<len(Program_Memory):
 
         elif opcode == "0010011" and funct3 == "000":
             '''Adding immediate to the source register'''
-            registers[rd] = signExtend(bin(int(rs, 2) + int(signExtend(imm), 2))[2:])
+            registers[rd] = bin(int(rs, 2) + int(signExtend(imm), 2))[2:].zfill(32)
 
         elif opcode == "0010011" and funct3 == "011":
             '''Set less than immediate (unsigned)'''
@@ -124,22 +125,9 @@ while pc<len(Program_Memory):
                 ans = 0
             registers[rd] = bin(ans)[2:].zfill(32)
         elif opcode==" 1100111" and funct3=="000":
-            ''''jalr'''
             registers[rd]=bin(int(pc,16)+4)[2:].zfill(32)
-            pc=int(registers["00110"],2)+int(signExtend(imm),2)
 
-    if opcode in S:
-        # register
-        rs1=instruction[12:17]
-        rs2=instruction[7:12]
-
-        # imm
-        imm=instruction[:7]+instruction[20:25]
-
-        Data_Memory[hex(int(registers[rs1],2)+int(signExtend(imm),2)).zfill(8)]=registers[rs2]
-        
     print(registers)
-    pc+=1
 
 
 
