@@ -18,6 +18,8 @@ registers = {"00000":"0"*32,"00001":"0"*32,"00010":"0"*32,"00011":"0"*32,"00100"
        "01010":"0"*32,"01011":"0"*32,"01100":"0"*32,"01101":"0"*32,"01110":"0"*32,"01111":"0"*32,"10000":"0"*32,"10001":"0"*32,"10010":"0"*32,"10011":"0"*32,
        "10100":"0"*32,"10101":"0"*32,"10110":"0"*32,"10111":"0"*32,"11000":"0"*32,"11001":"0"*32,"11010":"0"*32,"11011":"0"*32,"11100":"0"*32,"11101":"0"*32,
        "11110":"0"*32,"11111":"0"*32}
+registers['10011']="00000000000000000000000000001000"
+registers['10010']="00000000000000000000000000000111"
 
 R=["0110011"]
 I=["0000011","0010011","1100111"]
@@ -35,7 +37,10 @@ def signExtend(num):
         signBit=num[0]
         restBits= num [1:]
         ans=signBit*length + restBits
-        return ans
+    return ans
+
+def twos_complement(num, num_bits):
+    return bin((1 << num_bits) + num)[2:]
 pc=0
 while pc<len(Program_Memory):
     # Opcode extractor
@@ -62,22 +67,22 @@ while pc<len(Program_Memory):
             ans = rs1 + rs2
         elif funct7 == "01"+"0"*5 and funct3 == "0"*3:
             '''SUB'''
-            ans = rs1 - rs2
+            ans = rs1-rs2
         elif funct7 == "0"*7 and funct3 == "001":
             '''SLL'''
-            ans = rs1 << rs2
+            ans = rs1<<rs2
         elif funct7 == "0"*7 and funct3 == "010":
             '''set less than'''
             if rs1 < rs2:
-                ans = "1"
+                ans = 1
             else:
-                ans = "0"
+                ans = 0
         elif funct7 == "0"*7 and funct3 == "011":
             '''set less than (unsigned)'''
             if rs1 < rs2 and rs2 >= 0 and rs1 >= 0:
-                ans = "1"
+                ans = 1
             else:
-                ans = "0"
+                ans = 0
         elif funct7 == "0"*7 and funct3 == "100":
             '''XOR'''
             ans = rs1 ^ rs2
@@ -94,8 +99,10 @@ while pc<len(Program_Memory):
         else:
             print(f"ERROR at {pc}")
             continue
-        registers[rd] = bin(ans)[2:].zfill(32)
-
+        if ans<0:
+            registers[rd]=twos_complement(ans, 32)
+        else:
+            registers[rd] = bin(ans)[2:].zfill(32)
     if opcode in I:
         # Register
         rd = instruction[20:25]
@@ -125,9 +132,9 @@ while pc<len(Program_Memory):
             registers[rd] = bin(ans)[2:].zfill(32)
         elif opcode==" 1100111" and funct3=="000":
             ''''jalr'''
-            registers[rd]=bin(int(pc,16)+4)[2:].zfill(32)
+            # registers[rd]=bin(int(pc,16)+4)[2:].zfill(32)
+            registers[rd]=bin(pc+1)[2:].zfill(32)
             pc=int(registers["00110"],2)+int(signExtend(imm),2)
-
     if opcode in S:
         # register
         rs1=instruction[12:17]
@@ -137,8 +144,64 @@ while pc<len(Program_Memory):
         imm=instruction[:7]+instruction[20:25]
 
         Data_Memory[hex(int(registers[rs1],2)+int(signExtend(imm),2)).zfill(8)]=registers[rs2]
+    if opcode in B:
+
+        # register
+        rs1=instruction[12:17]
+        rs2=instruction[7:12]
+
+        # imm
+        imm=instruction[:7]+instruction[20:25]
+
+        # funct3
+        funct3=instruction[17:20]
+        if funct3=="000":
+            #beq
+            if signExtend(registers[rs1])==signExtend(registers[rs2]):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
+        elif funct3=="001":
+            #bne
+            if signExtend(registers[rs1])!=signExtend(registers[rs2]):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
+        elif funct3=="101":
+            #bge
+            if int(signExtend(registers[rs1]),2)>=int(signExtend(registers[rs2]),2):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
+        elif funct3=="100":
+            #blt
+            if int(signExtend(registers[rs1]),2)<int(signExtend(registers[rs2]),2):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
         
-    print(registers)
+        elif funct3=="110":
+            #bltu
+            if int((registers[rs1]).zfill(32),2)<int(registers[rs2].zfill(32),2):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
+        elif funct3=="111":
+            #bgeu
+            if int((registers[rs1]).zfill(32),2)>=int(registers[rs2].zfill(32),2):
+                pc=pc+int(signExtend(bin(imm)+"0"),2)
+    if opcode in U:
+        # registers
+        rd=instruction[20:25]
+        
+        # imm
+        imm=instruction[:20]
+        if opcode=="0110111":
+            #lui
+            registers[rd]=bin(int(signExtend(imm+"0"*12),2)/4)
+        elif opcode=="0010111":
+            #auipc
+            registers[rd]=bin(pc+int(signExtend(imm+"0"*12),2)/4)
+    if opcode in J:
+        #jal
+        # register
+        rd=instruction[20:25]
+        imm=instruction[:20] # girik batayega
+        
+        registers[rd]=bin(pc+1)
+        pc=pc+int(signExtend(bin(imm)+"0"),2)
+
+    print(registers['01001'])
     pc+=1
 
 
