@@ -1,8 +1,10 @@
-testcases = open("output.txt").readlines()
+testcasenumber=input("Enter the test case number = ")
+
+testcases = open(f"TestCases\\output\\{testcasenumber}.txt").readlines()
 generated = open('out.txt').readlines()
 
 numCases = 0
-
+print(len(testcases),len(generated))
 while(numCases < len(generated)):
     binsTest = testcases[numCases].split()
     binsGen = generated[numCases].split()
