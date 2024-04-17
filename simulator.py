@@ -1,9 +1,11 @@
 import sys
 
  
-Program_Memory=[input()]
+# Program_Memory=[input()]
 # instructs_length=len(instructions)
-
+f=open("input.txt")
+Program_Memory=f.readlines()
+# print(Program_Memory)
 # Program_Memory=[]
 # Intialize DataMemory
 # for j in range(0, instructs_length):
@@ -13,20 +15,24 @@ Data_Memory={}
 # Intialize DataMemory 
 for j in range(0, 128,4):
     Data_Memory[hex(j)[2:].zfill(8)]=("0"*32)
-    
+# print(Data_Memory)
 registers = {"00000":"0"*32,"00001":"0"*32,"00010":"0"*32,"00011":"0"*32,"00100":"0"*32,"00101":"0"*32,"00110":"0"*32,"00111":"0"*32,"01000":"0"*32,"01001":"0"*32,
        "01010":"0"*32,"01011":"0"*32,"01100":"0"*32,"01101":"0"*32,"01110":"0"*32,"01111":"0"*32,"10000":"0"*32,"10001":"0"*32,"10010":"0"*32,"10011":"0"*32,
        "10100":"0"*32,"10101":"0"*32,"10110":"0"*32,"10111":"0"*32,"11000":"0"*32,"11001":"0"*32,"11010":"0"*32,"11011":"0"*32,"11100":"0"*32,"11101":"0"*32,
        "11110":"0"*32,"11111":"0"*32}
-registers['10011']="00000000000000000000000000001000"
-registers['10010']="00000000000000000000000000000111"
-
-R=["0110011"]
+# registers['10011']="00000000000000000000000000001000"
+# registers['10010']="00000000000000000000000000000111"
+# registers['00011']="00000000000000000000000100000000"
+R=["0110011"]  
 I=["0000011","0010011","1100111"]
-S=["0100011"]
+S=["0100011"]     
 B=["1100011"]
 U=["0110111","0010111"]
 J=["1101111"]
+
+# saving data
+save_file=open("out.txt","w")
+
 
 # Important Functions
 def signExtend(num):
@@ -38,15 +44,26 @@ def signExtend(num):
         restBits= num [1:]
         ans=signBit*length + restBits
     return ans
-
+def sext(bin):
+    length=len(bin)
+    return (bin[0]*(32-length)+bin)
 def twos_complement(num, num_bits):
     return bin((1 << num_bits) + num)[2:]
+
+def  unsign_bin_to_dec(s):
+    dec=0
+    s=s[-1::-1]
+    for i in range(len(s)):
+        dec+=int(s[i])*(2**i)
+    return dec
 pc=0
+pc_val=0
+output=[]
 while pc<len(Program_Memory):
+    
     # Opcode extractor
     instruction=Program_Memory[pc]
-    opcode = instruction[25:]
-
+    opcode = instruction[25:32]
     if opcode in R:
         # Registers
         rd = instruction[20:25]
@@ -58,9 +75,10 @@ while pc<len(Program_Memory):
         funct7 = instruction[:7]
 
         # Loading register values
+        # print(rs1,rs2)
         rs1 = int(registers[rs1], 2)
         rs2 = int(registers[rs2], 2)
-
+        # print(rs1,rs2)
         # Operations
         if funct7 == "0"*7 and funct3 == "0"*3:
             '''ADD'''
@@ -70,7 +88,12 @@ while pc<len(Program_Memory):
             ans = rs1-rs2
         elif funct7 == "0"*7 and funct3 == "001":
             '''SLL'''
-            ans = rs1<<rs2
+            rs1 = instruction[12:17]
+            print(rs2)
+            num=unsign_bin_to_dec(str(rs2)[-5:])
+            ans=int(registers[rs1][num:]+"0"*num,2)
+            # ans = rs1<<rs2
+            # print(ans)
         elif funct7 == "0"*7 and funct3 == "010":
             '''set less than'''
             if rs1 < rs2:
@@ -115,13 +138,19 @@ while pc<len(Program_Memory):
         imm = instruction[:12]
 
         if opcode == "0000011" and funct3 == "010":
-            '''Loading word into a register'''
-            address = hex(int(rs1,2) + int(signExtend(imm),2))[2:].zfill(8)
-            registers[rd] = Data_Memory[address]  # Return value at address if exists, else 0
+            pass
+            # '''Loading word into a register'''
+            # print(pc)
+            # print(int(rs,2) + int(sext(imm),2))
+            # address = hex(int(rs,2) + int(sext(imm),2))[2:].zfill(8)
+            # # # print(a)
+            # # registers[rd] = Data_Memory[address]  # Return value at address if exists, else 0
 
         elif opcode == "0010011" and funct3 == "000":
             '''Adding immediate to the source register'''
-            registers[rd] = signExtend(bin(int(rs, 2) + int(signExtend(imm), 2))[2:])
+           
+
+            registers[rd] = sext(bin(int(rs, 2) + int(sext(imm), 2))[2:].zfill(32))
 
         elif opcode == "0010011" and funct3 == "011":
             '''Set less than immediate (unsigned)'''
@@ -158,28 +187,28 @@ while pc<len(Program_Memory):
         if funct3=="000":
             #beq
             if signExtend(registers[rs1])==signExtend(registers[rs2]):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
         elif funct3=="001":
             #bne
             if signExtend(registers[rs1])!=signExtend(registers[rs2]):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
         elif funct3=="101":
             #bge
             if int(signExtend(registers[rs1]),2)>=int(signExtend(registers[rs2]),2):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
         elif funct3=="100":
             #blt
             if int(signExtend(registers[rs1]),2)<int(signExtend(registers[rs2]),2):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
         
         elif funct3=="110":
             #bltu
             if int((registers[rs1]).zfill(32),2)<int(registers[rs2].zfill(32),2):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
         elif funct3=="111":
             #bgeu
             if int((registers[rs1]).zfill(32),2)>=int(registers[rs2].zfill(32),2):
-                pc=pc+int(signExtend(bin(imm)+"0"),2)
+                pc=pc+int(signExtend(imm+"0"),2)
     if opcode in U:
         # registers
         rd=instruction[20:25]
@@ -199,11 +228,25 @@ while pc<len(Program_Memory):
         imm=instruction[:20] # girik batayega
         
         registers[rd]=bin(pc+1)
-        pc=pc+int(signExtend(bin(imm)+"0"),2)
+        pc=pc+int(signExtend(imm+"0"),2)
+    
+    registers['00010']="00000000000000000000000100000000"
+    registers['00000']="0"*32
+    temp=f"0b{bin(pc_val+4)[2:].zfill(32)} "
+    pc_val+=4
+    for value in registers.values():
+        temp+="0b"+value+" "
+    temp.rstrip()
+    temp+="\n"
+    output.append(temp)
+    
 
-    print(registers['01001'])
+    # print(pc)
     pc+=1
 
+    # quit()
+# print(output)
+save_file.writelines(output)
 
 
     # Aditya ko yaad rakhna h ki hume hexa mai memory bnani h
