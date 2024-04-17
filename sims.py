@@ -2,7 +2,7 @@ import sys
 
 
 # Input
-f=open("tes.txt")
+f=open("input.txt")
 Program_Memory=f.readlines()
  
 # variables
@@ -13,8 +13,8 @@ itr=0
 # Data Memory
 Data_Memory={}
 for j in range(0, 128,4):
-    Data_Memory[hex(j)[2:].zfill(8)]=("0"*32)
-
+    Data_Memory[hex(j+65536)[2:].zfill(8)]=("0"*32)
+print(Data_Memory)
 
 # Registers
 global registers
@@ -23,17 +23,47 @@ registers = {"00000":"0"*32,"00001":"0"*32,"00010":"0"*32,"00011":"0"*32,"00100"
        "10100":"0"*32,"10101":"0"*32,"10110":"0"*32,"10111":"0"*32,"11000":"0"*32,"11001":"0"*32,"11010":"0"*32,"11011":"0"*32,"11100":"0"*32,"11101":"0"*32,
        "11110":"0"*32,"11111":"0"*32}
 
-def sext(num):
+def sext(num,integer=True):
     signbit=num[0]
     extra=32-len(num)
-    return int(extra*signbit+num,2) #change
+    if(integer):
+        return int(extra*signbit+num,2) #change
+    return extra*signbit+num
 
+
+def sext1(num, num_bits=32):
+    """
+    Sign extends a given binary number to a specified number of bits.
+    
+    Parameters:
+        num (int or str): The binary number to be sign extended. If an int, it's converted to a binary string.
+        num_bits (int): The number of bits after sign extension.
+    
+    Returns:
+        int: The sign extended value.
+    """
+    if isinstance(num, int):
+        num = bin(num)[2:]  # Convert integer to binary string
+        
+    signbit = num[0]  # Extract sign bit
+    extended_num = (num[0] * (num_bits - len(num))) + num  # Pad with sign bit to desired length
+    return int(extended_num, 2)  # Convert back to integer
 def twos_complement(num, num_bits):
     if num<0:
         return bin((1 << num_bits) + num)[2:]
     else:
-        return num
-
+        return bin(num)[2:].zfill(32)
+def twos_complement_bin_to_int(binary_str):
+    # Check if the number is negative (if the most significant bit is 1)
+    if binary_str[0] == '1':
+        # Convert binary string to integer (with sign bit)
+        num = int(binary_str, 2)
+        # Calculate the two's complement value by subtracting 2^n from the value
+        # where n is the number of bits in the binary string
+        return num - 2 ** len(binary_str)
+    else:
+        # If the number is positive, simply convert the binary string to integer
+        return int(binary_str, 2)
 def unsigned(num):
     extra=32-len(num)
     return int(extra*"0"+num,2) #change
@@ -43,10 +73,8 @@ def R_type(inst):
     rd  = inst[-12:-7]
     funct3 = inst[-15:-12]
     rs1 = registers[inst[-20:-15]]
-    print(itr)
     rs2 = registers[inst[-25:-20]]
     funct7 = inst[:-25]
-    
     if funct7 == "0"*7 and funct3 == "0"*3:
         '''ADD'''
         rs1 = sext(rs1)
@@ -66,7 +94,7 @@ def R_type(inst):
         rs1 = sext(rs1)
         rs2 = unsigned(rs2[-5:])            
         ans = bin(rs1<<rs2)[2:].zfill(32)
-        registers[rd] = ans
+        registers[rd] = ans.zfill(32)
             
     elif funct7 == "0"*7 and funct3 == "010":
         '''set less than'''
@@ -80,6 +108,8 @@ def R_type(inst):
         '''set less than (unsigned)'''
         rs1 = unsigned(rs1)
         rs2 = unsigned(rs2)
+
+        
         if rs1 < rs2 :
             registers[rd] = "0"*31 + "1" 
         else:
@@ -102,14 +132,14 @@ def R_type(inst):
         rs1 = sext(rs1)
         rs2 = sext(rs2)            
         ans = bin(rs1|rs2)[2:].zfill(32)
-        registers[rd] = ans
+        registers[rd] = ans.zfill(32)
             
     elif (funct7 == "0"*7 and funct3 == "111"):
         '''AND (Bitwise Logical AND)'''
         rs1 = sext(rs1)
         rs2 = sext(rs2)            
         ans = bin(rs1&rs2)[2:].zfill(32)
-        registers[rd] = ans
+        registers[rd] = ans.zfill(32)
 
     # Bonus part
     elif funct7 == "0"*6 + "1" and funct3 =="000":
@@ -121,7 +151,6 @@ def R_type(inst):
         
     else:
         print("ERROR")
-
     itr+=1
 
 
@@ -147,7 +176,6 @@ def I_type(inst):
     elif func3=="000" and opcode=="0010011":
         '''addi'''
         registers[rd]=bin(int(registers[rs1],2)+sext(imm))[2:].zfill(32)
-        print(registers[rd])
         itr+=1
     elif func3=="011" and opcode=="0010011":
         '''sltiu'''
@@ -155,11 +183,8 @@ def I_type(inst):
         itr+=1
     elif func3=="000" and opcode=="1100111":
         '''jalr'''
-        print("jalr")
         registers[rd]=bin(itr*4+4)[2:].zfill(32)
         itr=(int(rs1,2)+sext(imm))//4
-
-        
     
 def S_type(inst):
     '''Handle Sw'''
@@ -174,53 +199,60 @@ def S_type(inst):
     itr+=1
     
 def B_type(inst):
-        global itr
-      # register
-        rs1=inst[-20:-15]
-        rs2=inst[-25:-20]
+    global itr
+    rs1 = inst[-20:-15]
+    rs2 = inst[-25:-20]
 
-        # imm
-        imm=inst[:-25]+inst[-12:-7]
+    # imm
+    imm = inst[-32]+inst[-8]+inst[-31:-25]+inst[-12:-8]
 
-        # funct3
-        funct3=inst[-15:-12]
-        if funct3=="000":
-            #beq
-            if sext(registers[rs1])==sext(registers[rs2]):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
-        elif funct3=="001":
-            #bne
-            if sext(registers[rs1])!=sext(registers[rs2]):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
-        elif funct3=="101":
-            #bge
-            if int(sext(registers[rs1]),2)>=int(sext(registers[rs2]),2):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
-        elif funct3=="100":
-            #blt
-            if int(sext(registers[rs1]),2)<int(sext(registers[rs2]),2):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
-        
-        elif funct3=="110":
-            #bltu
-            if int((registers[rs1]).zfill(32),2)<int(registers[rs2].zfill(32),2):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
-        elif funct3=="111":
-            #bgeu
-            if int((registers[rs1]).zfill(32),2)>=int(registers[rs2].zfill(32),2):
-                itr+=sext(imm+'0')//4
-            else:
-                itr+=1
+    # funct3
+    funct3 = inst[-15:-12]
+    
+    temp=twos_complement_bin_to_int(sext(imm+"0",False))
+    if(int(imm,2)==0):
+        itr+=1
+        return
+    if funct3=="000":
+        #beq
+        print(sext(registers[rs1])==sext(registers[rs2]))
+        if sext(registers[rs1])==sext(registers[rs2]):
+            itr+=temp//4
+        else:
+            itr+=1
+    elif funct3=="001":
+        #bne
+        if sext(registers[rs1])!=sext(registers[rs2]):
+            itr+=temp//4
+        else:
+            itr+=1
+    elif funct3=="101":
+        #bge
+        if int(sext(registers[rs1]))>=int(sext(registers[rs2])):
+            itr+=temp//4
+        else:
+            itr+=1
+    elif funct3=="100":
+        #blt
+        if int(sext(registers[rs1]))<int(sext(registers[rs2])):
+            itr+=temp//4
+        else:
+            itr+=1
+    
+    elif funct3=="110":
+        #bltu
+        if int((registers[rs1]).zfill(32))<int(registers[rs2].zfill(32)):
+            itr+=temp//4
+        else:
+            itr+=1
+    elif funct3=="111":
+        #bgeu
+        if int(registers[rs1],2)>=int(registers[rs2],2):
+            itr+=temp//4
+        else:
+            itr+=1
+    # print(itr)
+    # quit()
 def U_type(inst):
         global itr
         #opcode
@@ -241,13 +273,11 @@ def U_type(inst):
 def J_Type(inst):
     #Jal
     rd = inst[-12:-7]
-    # imm = inst[-32]+inst[-19:-12]+inst[-20]+inst[-31:-20]
-    imm= inst[:-12]
-    # registers[rd] = #On Hold  
+    imm = inst[-32]+inst[-20:-12]+inst[-21]+inst[-31:-21]
+    temp=twos_complement_bin_to_int(sext(imm+"0",False))
     global itr
     registers[rd]=bin(itr*4+4)[2:].zfill(32)
-    itr=itr+(sext(imm+'0'))//4
-
+    itr=itr+temp//4
 def H_Type(inst):
     opcode = inst[-7:]
     if opcode == "1000000":
@@ -270,25 +300,40 @@ def fetch_op(instr):
         U_type(instr)
     elif op=="1101111":
         J_Type(instr)
-    # elif op=="1000000" or op=="1000001":
-    #     H_type(instr)
+    elif op=="1000000" or op=="1000001":
+        H_Type(instr)
 
 
 # write file
 save_file=open("out.txt","w")
 output=[]
 
-numInstr = len(Program_Memory)
-while itr <numInstr:
-    registers['00010']="00000000000000000000000100000000"
-    inst=Program_Memory[itr].replace('\n',"")
-    fetch_op(inst)
+def saveData():
+    global itr
     temp=f"0b{bin(itr*4)[2:].zfill(32)} "
     for value in registers.values():
         temp+="0b"+value+" "
     temp.rstrip()
     temp+="\n"
     output.append(temp)
+numInstr = len(Program_Memory)
+
+
+while itr <numInstr:
+    registers['00010']="00000000000000000000000100000000"
+    inst=Program_Memory[itr].replace('\n',"")
+    if(inst=="00000000000000000000000001100011"):
+       saveData()
+       itr+=1
+    else:
+        fetch_op(inst)
+        saveData()
 save_file.writelines(output)
+
+save_file.write("\n")
+for address,data in Data_Memory.items():
+    print(f"{address}:{data}\n")
+    save_file.write(f"{address}:{data}\n")
+save_file.close()
     
 

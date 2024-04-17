@@ -1,252 +1,319 @@
 import sys
 
- 
-# Program_Memory=[input()]
-# instructs_length=len(instructions)
+
+# Input
 f=open("input.txt")
 Program_Memory=f.readlines()
-# print(Program_Memory)
-# Program_Memory=[]
-# Intialize DataMemory
-# for j in range(0, instructs_length):
-#     Program_Memory[hex(memoryAddress)[2:].zfill(8)]=instructions[j]
+ 
+# variables
+# setting iterator for 
+global itr
+itr=0
 
+# Data Memory
 Data_Memory={}
-# Intialize DataMemory 
 for j in range(0, 128,4):
     Data_Memory[hex(j)[2:].zfill(8)]=("0"*32)
-# print(Data_Memory)
+
+
+# Registers
+global registers
 registers = {"00000":"0"*32,"00001":"0"*32,"00010":"0"*32,"00011":"0"*32,"00100":"0"*32,"00101":"0"*32,"00110":"0"*32,"00111":"0"*32,"01000":"0"*32,"01001":"0"*32,
        "01010":"0"*32,"01011":"0"*32,"01100":"0"*32,"01101":"0"*32,"01110":"0"*32,"01111":"0"*32,"10000":"0"*32,"10001":"0"*32,"10010":"0"*32,"10011":"0"*32,
        "10100":"0"*32,"10101":"0"*32,"10110":"0"*32,"10111":"0"*32,"11000":"0"*32,"11001":"0"*32,"11010":"0"*32,"11011":"0"*32,"11100":"0"*32,"11101":"0"*32,
        "11110":"0"*32,"11111":"0"*32}
-# registers['10011']="00000000000000000000000000001000"
-# registers['10010']="00000000000000000000000000000111"
-# registers['00011']="00000000000000000000000100000000"
-R=["0110011"]  
-I=["0000011","0010011","1100111"]
-S=["0100011"]     
-B=["1100011"]
-U=["0110111","0010111"]
-J=["1101111"]
 
-# saving data
-save_file=open("out.txt","w")
+def sext(num):
+    signbit=num[0]
+    extra=32-len(num)
+    return int(extra*signbit+num,2) #change
 
-
-# Important Functions
-def signExtend(num):
-    length=32-len(num)
-    if length<=0:
-        ans=num[:32]
-    else:
-        signBit=num[0]
-        restBits= num [1:]
-        ans=signBit*length + restBits
-    return ans
-def sext(bin):
-    length=len(bin)
-    return (bin[0]*(32-length)+bin)
+def sext1(num, num_bits=32):
+    """
+    Sign extends a given binary number to a specified number of bits.
+    
+    Parameters:
+        num (int or str): The binary number to be sign extended. If an int, it's converted to a binary string.
+        num_bits (int): The number of bits after sign extension.
+    
+    Returns:
+        int: The sign extended value.
+    """
+    if isinstance(num, int):
+        num = bin(num)[2:]  # Convert integer to binary string
+        
+    signbit = num[0]  # Extract sign bit
+    extended_num = (num[0] * (num_bits - len(num))) + num  # Pad with sign bit to desired length
+    return int(extended_num, 2)  # Convert back to integer
 def twos_complement(num, num_bits):
-    return bin((1 << num_bits) + num)[2:]
+    if num<0:
+        return bin((1 << num_bits) + num)[2:]
+    else:
+        return bin(num)[2:].zfill(32)
 
-def  unsign_bin_to_dec(s):
-    dec=0
-    s=s[-1::-1]
-    for i in range(len(s)):
-        dec+=int(s[i])*(2**i)
-    return dec
-pc=0
-pc_val=0
-output=[]
-while pc<len(Program_Memory):
+def unsigned(num):
+    extra=32-len(num)
+    return int(extra*"0"+num,2) #change
+
+def R_type(inst):
+    global itr
+    rd  = inst[-12:-7]
+    funct3 = inst[-15:-12]
+    rs1 = registers[inst[-20:-15]]
+    rs2 = registers[inst[-25:-20]]
+    funct7 = inst[:-25]
     
-    # Opcode extractor
-    instruction=Program_Memory[pc]
-    opcode = instruction[25:32]
-    if opcode in R:
-        # Registers
-        rd = instruction[20:25]
-        rs1 = instruction[12:17]
-        rs2 = instruction[7:12]
+    if funct7 == "0"*7 and funct3 == "0"*3:
+        '''ADD'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)
+        ans = bin(rs1 + rs2)[2:].zfill(32)
+        registers[rd] = ans
+            
+    elif funct7 == "01"+"0"*5 and funct3 == "0"*3:
+        '''SUB'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)
+        ans = twos_complement(rs1-rs2,32)
+        registers[rd]  = ans
+    elif funct7 == "0"*7 and funct3 == "001":
+        '''SLL'''
 
-        # Funct3 and Funct7
-        funct3 = instruction[17:20]
-        funct7 = instruction[:7]
-
-        # Loading register values
-        # print(rs1,rs2)
-        rs1 = int(registers[rs1], 2)
-        rs2 = int(registers[rs2], 2)
-        # print(rs1,rs2)
-        # Operations
-        if funct7 == "0"*7 and funct3 == "0"*3:
-            '''ADD'''
-            ans = rs1 + rs2
-        elif funct7 == "01"+"0"*5 and funct3 == "0"*3:
-            '''SUB'''
-            ans = rs1-rs2
-        elif funct7 == "0"*7 and funct3 == "001":
-            '''SLL'''
-            rs1 = instruction[12:17]
-            print(rs2)
-            num=unsign_bin_to_dec(str(rs2)[-5:])
-            ans=int(registers[rs1][num:]+"0"*num,2)
-            # ans = rs1<<rs2
-            # print(ans)
-        elif funct7 == "0"*7 and funct3 == "010":
-            '''set less than'''
-            if rs1 < rs2:
-                ans = 1
-            else:
-                ans = 0
-        elif funct7 == "0"*7 and funct3 == "011":
-            '''set less than (unsigned)'''
-            if rs1 < rs2 and rs2 >= 0 and rs1 >= 0:
-                ans = 1
-            else:
-                ans = 0
-        elif funct7 == "0"*7 and funct3 == "100":
-            '''XOR'''
-            ans = rs1 ^ rs2
-        elif (funct7 == "0"*7 and funct3 == "101"):
-            '''SRL'''
-            shift_amount = rs2 & 0b11111
-            ans = rs1 >> shift_amount
-        elif (funct7 == "0"*7 and funct3 == "110"):
-            '''OR (Bitwise Logical OR)'''
-            ans = rs1 | rs2
-        elif (funct7 == "0"*7 and funct3 == "111"):
-            '''AND (Bitwise Logical AND)'''
-            ans = rs1 & rs2
+        rs1 = sext(rs1)
+        rs2 = unsigned(rs2[-5:])            
+        ans = bin(rs1<<rs2)[2:].zfill(32)
+        registers[rd] = ans.zfill(32)
+            
+    elif funct7 == "0"*7 and funct3 == "010":
+        '''set less than'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)
+        if rs1 < rs2:
+            registers[rd] = "0"*31 + "1"
         else:
-            print(f"ERROR at {pc}")
-            continue
-        if ans<0:
-            registers[rd]=twos_complement(ans, 32)
+            registers[rd] = "0"*32 
+    elif funct7 == "0"*7 and funct3 == "011":
+        '''set less than (unsigned)'''
+        rs1 = unsigned(rs1)
+        rs2 = unsigned(rs2)
+        if rs1 < rs2 :
+            registers[rd] = "0"*31 + "1" 
         else:
-            registers[rd] = bin(ans)[2:].zfill(32)
-    if opcode in I:
-        # Register
-        rd = instruction[20:25]
-        rs = registers[instruction[12:17]]
-
-        # Funct3
-        funct3 = instruction[17:20]
-
-        # Immediate
-        imm = instruction[:12]
-
-        if opcode == "0000011" and funct3 == "010":
-            pass
-            # '''Loading word into a register'''
-            # print(pc)
-            # print(int(rs,2) + int(sext(imm),2))
-            # address = hex(int(rs,2) + int(sext(imm),2))[2:].zfill(8)
-            # # # print(a)
-            # # registers[rd] = Data_Memory[address]  # Return value at address if exists, else 0
-
-        elif opcode == "0010011" and funct3 == "000":
-            '''Adding immediate to the source register'''
-           
-
-            registers[rd] = sext(bin(int(rs, 2) + int(sext(imm), 2))[2:].zfill(32))
-
-        elif opcode == "0010011" and funct3 == "011":
-            '''Set less than immediate (unsigned)'''
-            if int(rs, 2) < int(imm, 2):
-                ans = 1
-            else:
-                ans = 0
-            registers[rd] = bin(ans)[2:].zfill(32)
-        elif opcode==" 1100111" and funct3=="000":
-            ''''jalr'''
-            # registers[rd]=bin(int(pc,16)+4)[2:].zfill(32)
-            registers[rd]=bin(pc+1)[2:].zfill(32)
-            pc=int(registers["00110"],2)+int(signExtend(imm),2)
-    if opcode in S:
-        # register
-        rs1=instruction[12:17]
-        rs2=instruction[7:12]
-
-        # imm
-        imm=instruction[:7]+instruction[20:25]
-
-        Data_Memory[hex(int(registers[rs1],2)+int(signExtend(imm),2)).zfill(8)]=registers[rs2]
-    if opcode in B:
-
-        # register
-        rs1=instruction[12:17]
-        rs2=instruction[7:12]
-
-        # imm
-        imm=instruction[:7]+instruction[20:25]
-
-        # funct3
-        funct3=instruction[17:20]
-        if funct3=="000":
-            #beq
-            if signExtend(registers[rs1])==signExtend(registers[rs2]):
-                pc=pc+int(signExtend(imm+"0"),2)
-        elif funct3=="001":
-            #bne
-            if signExtend(registers[rs1])!=signExtend(registers[rs2]):
-                pc=pc+int(signExtend(imm+"0"),2)
-        elif funct3=="101":
-            #bge
-            if int(signExtend(registers[rs1]),2)>=int(signExtend(registers[rs2]),2):
-                pc=pc+int(signExtend(imm+"0"),2)
-        elif funct3=="100":
-            #blt
-            if int(signExtend(registers[rs1]),2)<int(signExtend(registers[rs2]),2):
-                pc=pc+int(signExtend(imm+"0"),2)
+            registers[rd] = "0"*32
+    elif funct7 == "0"*7 and funct3 == "100":
+        '''XOR'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)
+        ans = bin(rs1 ^ rs2)[2:].zfill(32)
+        registers[rd] = ans
+    elif (funct7 == "0"*7 and funct3 == "101"):
+        '''SRL'''
         
-        elif funct3=="110":
-            #bltu
-            if int((registers[rs1]).zfill(32),2)<int(registers[rs2].zfill(32),2):
-                pc=pc+int(signExtend(imm+"0"),2)
-        elif funct3=="111":
-            #bgeu
-            if int((registers[rs1]).zfill(32),2)>=int(registers[rs2].zfill(32),2):
-                pc=pc+int(signExtend(imm+"0"),2)
-    if opcode in U:
+        rs1 = sext(rs1)
+        rs2 = unsigned(rs2[-5:])            
+        ans = bin(rs1>>rs2)[2:].zfill(32)
+        registers[rd] = ans
+    elif (funct7 == "0"*7 and funct3 == "110"):
+        '''OR (Bitwise Logical OR)'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)            
+        ans = bin(rs1|rs2)[2:].zfill(32)
+        registers[rd] = ans.zfill(32)
+            
+    elif (funct7 == "0"*7 and funct3 == "111"):
+        '''AND (Bitwise Logical AND)'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)            
+        ans = bin(rs1&rs2)[2:].zfill(32)
+        registers[rd] = ans.zfill(32)
+
+    # Bonus part
+    elif funct7 == "0"*6 + "1" and funct3 =="000":
+        '''MUL'''
+        rs1 = sext(rs1)
+        rs2 = sext(rs2)
+        ans = bin(rs1 + rs2)[2:].zfill(32)
+        registers[rd] = ans
+        
+    else:
+        print("ERROR")
+    print(itr+100)
+    itr+=1
+
+
+def I_type(inst):
+    '''Handle lw,addi,sltiu,jalr inst'''
+    # opcode
+    opcode=inst[-7:]
+    
+    # register
+    rd=inst[-12:-7] #load register address
+    rs1=inst[-20:-15] #source register address
+
+    # func3
+    func3=inst[-15:-12]
+
+    # imm
+    imm=inst[:-20]
+    global itr
+    if func3=="010" and opcode=="0000011":
+        '''lw'''
+        registers[rd]=Data_Memory[hex(int(registers[rs1],2)+sext(imm)).zfill(8)]
+        itr+=1
+    elif func3=="000" and opcode=="0010011":
+        '''addi'''
+        registers[rd]=bin(int(registers[rs1],2)+sext(imm))[2:].zfill(32)
+        itr+=1
+    elif func3=="011" and opcode=="0010011":
+        '''sltiu'''
+        registers[rd]=bin(int(unsigned(registers[rs1])<unsigned(registers[imm])))[2:].zfill(32)
+        itr+=1
+    elif func3=="000" and opcode=="1100111":
+        '''jalr'''
+        registers[rd]=bin(itr*4+4)[2:].zfill(32)
+        itr=(int(rs1,2)+sext(imm))//4
+    
+def S_type(inst):
+    '''Handle Sw'''
+    #registers
+    rs1 = inst[-20:-15]
+    rs2 = inst[-25:-20]
+    #imm
+    imm = inst[:-25] + inst[-12:-7]
+
+    Data_Memory[hex(int(registers[rs1],2)+sext(imm)).zfill(8)]=registers[rs2]
+    global itr
+    itr+=1
+    
+def B_type(inst):
+    print("I am at B")
+    global itr
+    rs1 = inst[-15:-10]
+    rs2 = inst[-20:-15]
+
+    # imm
+    imm = inst[-25:-20] + inst[-12:-7]
+
+    # funct3
+    funct3 = inst[-12:-9]
+
+    if funct3=="000":
+        #beq
+        if sext(registers[rs1])==sext(registers[rs2]):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    elif funct3=="001":
+        #bne
+        if sext(registers[rs1])!=sext(registers[rs2]):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    elif funct3=="101":
+        #bge
+        if int(sext(registers[rs1]),2)>=int(sext(registers[rs2]),2):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    elif funct3=="100":
+        #blt
+        
+        if int(sext(registers[rs1]),2)<int(sext(registers[rs2]),2):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    
+    elif funct3=="110":
+        #bltu
+        if int((registers[rs1]).zfill(32),2)<int(registers[rs2].zfill(32),2):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    elif funct3=="111":
+        #bgeu
+        if int(registers[rs1],2)>=int(registers[rs2],2):
+            itr+=sext(imm+'0')//4
+        else:
+            itr+=1
+    # quit()
+def U_type(inst):
+        global itr
+        #opcode
+        op=inst[-7:]
         # registers
-        rd=instruction[20:25]
-        
+        rd=inst[-12:-7]
         # imm
-        imm=instruction[:20]
-        if opcode=="0110111":
-            #lui
-            registers[rd]=bin(int(signExtend(imm+"0"*12),2)/4)
-        elif opcode=="0010111":
+        imm=inst[:-12]
+
+        if op=="0010111":
             #auipc
-            registers[rd]=bin(pc+int(signExtend(imm+"0"*12),2)/4)
-    if opcode in J:
-        #jal
-        # register
-        rd=instruction[20:25]
-        imm=instruction[:20] # girik batayega
-        
-        registers[rd]=bin(pc+1)
-        pc=pc+int(signExtend(imm+"0"),2)
+            registers[rd]=bin(itr*4+sext(imm+"0"*12))[2:].zfill(32)
+        elif op=="0110111":
+            #lui
+            registers[rd]=bin(sext(imm+"0"*12))[2:].zfill(32)
+        itr+=1
+
+def J_Type(inst):
+    #Jal
+    rd = inst[-12:-7]
+    # imm= inst[:-12]
+    imm = inst[-20:-10] + inst[-1] + inst[-11] + inst[-19:-12]
+    global itr
+    # print(imm)
+    registers[rd]=bin(itr*4+4)[2:].zfill(32)
+    # print('\n',sext(imm),'\n')
+    itr=itr+(sext(imm+"0"))//4
+    print("Jtype",itr)
+    quit()
+def H_Type(inst):
+    opcode = inst[-7:]
+    if opcode == "1000000":
+        for i in registers.keys():
+            registers[i]="0"*32
+    elif opcode == "1000001":
+        quit()
     
-    registers['00010']="00000000000000000000000100000000"
-    registers['00000']="0"*32
-    temp=f"0b{bin(pc_val+4)[2:].zfill(32)} "
-    pc_val+=4
+def fetch_op(instr):
+    op=instr[-7:]
+    # print(op)
+    # print(op)
+    if op=="0110011":
+        R_type(instr)
+    elif op=="0000011" or op=="0010011" or op=="11001111":
+        I_type(instr)    
+    elif op=="0100011":
+        S_type(instr)
+    elif op=="1100011":
+        B_type(instr)
+    elif op=="0110111" or op=="0010111":
+        U_type(instr)
+    elif op=="1101111":
+        J_Type(instr)
+    elif op=="1000000" or op=="1000001":
+        H_Type(instr)
+
+
+# write file
+save_file=open("out.txt","w")
+output=[]
+
+def saveData():
+    global itr
+    temp=f"0b{bin(itr*4)[2:].zfill(32)} "
     for value in registers.values():
         temp+="0b"+value+" "
     temp.rstrip()
     temp+="\n"
     output.append(temp)
+numInstr = len(Program_Memory)
+while itr <numInstr:
+    registers['00010']="00000000000000000000000100000000"
+    inst=Program_Memory[itr].replace('\n',"")
+    print(itr)
+    fetch_op(inst)
+    saveData()
+    # print(registers)
+    
+save_file.writelines(output)
     
 
-    # print(pc)
-    pc+=1
-
-    # quit()
-# print(output)
-save_file.writelines(output)
-
-
-    # Aditya ko yaad rakhna h ki hume hexa mai memory bnani h

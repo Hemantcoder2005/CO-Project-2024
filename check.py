@@ -1,15 +1,17 @@
-testcases=open("output.txt").readlines()
-generated=open('out.txt').readlines()
+testcases = open("output.txt").readlines()
+generated = open('out.txt').readlines()
 
-numCases=0
+numCases = 0
 
-while(numCases<len(generated)):
-    binsTest=testcases[numCases].split()
-    binsGen=generated[numCases].split()
+while(numCases < len(generated)):
+    binsTest = testcases[numCases].split()
+    binsGen = generated[numCases].split()
+    print("\033[93mRunning instruction = ", numCases+1, "\033[00m")  
+
     for i in range(len(binsTest)):
-        if(binsTest[i]!=binsGen[i]):
-            print(f'TestCase is {binsTest[i]} Your is {binsGen[i]}----> line num ={numCases+1}----> reg = {i+1}')
+        if(binsTest[i] != binsGen[i] ):
+            print(f'TestCase is \033[92m{binsTest[i]}\033[00m got \033[91m{binsGen[i]}\033[00m ----> line num = \033[93m{numCases+1}\033[00m ----> reg = \033[94m{i+1}\033[00m')
             quit()
-    numCases+=1
-print("All test case passed")
+    numCases += 1
 
+print("\033[92mAll Testcases Passed!\033[00m") 
