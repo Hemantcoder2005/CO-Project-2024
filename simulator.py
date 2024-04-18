@@ -80,8 +80,8 @@ def R_type(inst):
             
     elif funct7 == "0"*7 and funct3 == "010":
         '''set less than'''
-        rs1 = sext(rs1)
-        rs2 = sext(rs2)
+        rs1 = twos_complement_bin_to_int(rs1)
+        rs2 = twos_complement_bin_to_int(rs2)
         if rs1 < rs2:
             registers[rd] = "0"*31 + "1"
         else:
@@ -154,6 +154,12 @@ def I_type(inst):
     if func3=="010" and opcode=="0000011":
         '''lw'''
         registers[rd]=Data_Memory[hex(int(registers[rs1],2)+sext(imm))[2:].zfill(8)]
+        itr+=1
+    #Bonus
+    elif func3 == "000" and opcode == "0000011":
+        '''rvrs'''
+        rs = registers[rs1][::-1]
+        registers[rd] = rs
         itr+=1
     elif func3=="000" and opcode=="0010011":
         '''addi'''
@@ -257,6 +263,7 @@ def J_Type(inst):
     global itr
     registers[rd]=bin(itr*4+4)[2:].zfill(32)
     itr=itr+temp//4
+#Bonus
 def H_Type(inst):
     opcode = inst[-7:]
     if opcode == "1000000":
@@ -303,7 +310,7 @@ while itr <numInstr:
     inst=Program_Memory[itr].replace('\n',"")
     if(inst=="00000000000000000000000001100011"):
        saveData()
-       itr+=1
+       break
     else:
         fetch_op(inst)
         saveData()
