@@ -172,7 +172,7 @@ def I_type(inst):
     elif func3=="000" and opcode=="1100111":
         '''jalr'''
         registers[rd]=bin(itr*4+4)[2:].zfill(32)
-        itr=(int(rs1,2)+sext(imm))//4
+        itr=int(registers['00001'],2)//4
     
 def S_type(inst):
     '''Handle Sw'''
@@ -265,18 +265,18 @@ def J_Type(inst):
     itr=itr+temp//4
 #Bonus
 def H_Type(inst):
+    global itr
     opcode = inst[-7:]
     if opcode == "1000000":
         for i in registers.keys():
             registers[i]="0"*32
-    elif opcode == "1000001":
-        quit()
-    
+        itr += 1
+
 def fetch_op(instr):
     op=instr[-7:]
     if op=="0110011":
         R_type(instr)
-    elif op=="0000011" or op=="0010011" or op=="11001111":
+    elif op=="0000011" or op=="0010011" or op=="1100111":
         I_type(instr)    
     elif op=="0100011":
         S_type(instr)
@@ -308,7 +308,7 @@ numInstr = len(Program_Memory)
 while itr <numInstr:
     registers['00010']="00000000000000000000000100000000"
     inst=Program_Memory[itr].replace('\n',"")
-    if(inst=="00000000000000000000000001100011"):
+    if(inst=="00000000000000000000000001100011" or inst == "00000000000000000000000001000001"):
        saveData()
        break
     else:
